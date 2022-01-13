@@ -15,7 +15,7 @@ import * as bcrypt from 'bcrypt';
           const schema = UserSchema;
 
           schema.pre<UserDocument>('save', async function (next) {
-            if (this.password) {
+            if (this?.password) {
               const salt = await bcrypt.genSalt(6);
               this.password = await bcrypt.hash(this.password, salt);
             }
@@ -28,14 +28,11 @@ import * as bcrypt from 'bcrypt';
             async function (next) {
               const _update = <UserDocument>this.getUpdate();
 
-              if (_update.password) {
-                const user = <UserDocument>(
-                  await this.model.findById(this.getQuery())
-                );
-
+              if (_update?.password) {
                 const salt = await bcrypt.genSalt(6);
-                user.password = await bcrypt.hash(_update.password, salt);
-                user.save();
+                const password = await bcrypt.hash(_update.password, salt);
+
+                _update.password = password;
               }
 
               return next();

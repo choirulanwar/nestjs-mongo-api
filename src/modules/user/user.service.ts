@@ -4,7 +4,7 @@ import { isValidObjectId, PaginateModel, PaginateResult } from 'mongoose';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './schemas/user.schema';
-import { PaginationParams } from 'src/common/dto/pagination.dto';
+import { MongoQueryOptions } from 'src/common/dto/mongo-query-options.dto';
 
 @Injectable()
 export class UserService {
@@ -16,8 +16,15 @@ export class UserService {
     return user;
   }
 
-  async findAll(options: PaginationParams): Promise<PaginateResult<User>> {
-    const { offset, limit, orderBy, orderType } = options;
+  async findAll(
+    queryOptions: MongoQueryOptions,
+  ): Promise<PaginateResult<User>> {
+    const {
+      offset = 0,
+      limit = 10,
+      orderBy = '_id',
+      orderType = 'desc',
+    } = queryOptions;
 
     const user = await this.model.paginate(
       {},
@@ -26,13 +33,14 @@ export class UserService {
         limit,
         sort: { [orderBy]: orderType },
         select: '-password',
+        populate: queryOptions?.populate,
       },
     );
 
     return user;
   }
 
-  async findOne(id: string): Promise<User> {
+  async findOne(id: string, queryOptions: MongoQueryOptions): Promise<User> {
     const userId = isValidObjectId(id);
     const user = await this.model
       .findOne(
@@ -47,12 +55,18 @@ export class UserService {
               ],
             },
       )
-      .select('-password');
+      .select(queryOptions?.fields)
+      .select('-password')
+      .populate(queryOptions?.populate);
 
     return user;
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
+  async update(
+    id: string,
+    updateUserDto: UpdateUserDto,
+    queryOptions: MongoQueryOptions,
+  ): Promise<User> {
     if (!isValidObjectId(id)) {
       throw new Error('User ID not valid');
     }
@@ -61,17 +75,23 @@ export class UserService {
       .findByIdAndUpdate(id, updateUserDto, {
         new: true,
       })
-      .select('-password');
+      .select(queryOptions?.fields)
+      .select('-password')
+      .populate(queryOptions?.populate);
 
     return user;
   }
 
-  async delete(id: string): Promise<User> {
+  async delete(id: string, queryOptions: MongoQueryOptions): Promise<User> {
     if (!isValidObjectId(id)) {
       throw new Error('User ID not valid');
     }
 
-    const user = await this.model.findByIdAndDelete(id).select('-password');
+    const user = await this.model
+      .findByIdAndDelete(id)
+      .select(queryOptions?.fields)
+      .select('-password')
+      .populate(queryOptions?.populate);
 
     return user;
   }

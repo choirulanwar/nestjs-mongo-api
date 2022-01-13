@@ -14,13 +14,13 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { PaginateResult } from 'mongoose';
-import { PaginationParams } from 'src/common/dto/pagination.dto';
+import { MongoQueryOptions } from 'src/common/dto/mongo-query-options.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './schemas/user.schema';
 import { UserService } from './user.service';
 
-@ApiTags('users')
+@ApiTags('User')
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
@@ -41,19 +41,24 @@ export class UserController {
   @Get()
   @UsePipes(new ValidationPipe({ transform: true }))
   async findAll(
-    @Query() options: PaginationParams,
+    @Query(new ValidationPipe({ transform: true }))
+    queryOptions: MongoQueryOptions,
   ): Promise<PaginateResult<User>> {
     try {
-      return await this.userService.findAll(options);
+      return await this.userService.findAll(queryOptions);
     } catch (error) {
       throw new HttpException(error?.message, HttpStatus.BAD_REQUEST);
     }
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string): Promise<User> {
+  async findOne(
+    @Param('id') id: string,
+    @Query(new ValidationPipe({ transform: true }))
+    queryOptions: MongoQueryOptions,
+  ): Promise<User> {
     try {
-      const user = await this.userService.findOne(id);
+      const user = await this.userService.findOne(id, queryOptions);
 
       if (!user) {
         throw new HttpException('User not found', HttpStatus.NOT_FOUND);
@@ -69,9 +74,15 @@ export class UserController {
   async update(
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
+    @Query(new ValidationPipe({ transform: true }))
+    queryOptions: MongoQueryOptions,
   ): Promise<User> {
     try {
-      const user = await this.userService.update(id, updateUserDto);
+      const user = await this.userService.update(
+        id,
+        updateUserDto,
+        queryOptions,
+      );
 
       if (!user) {
         throw new HttpException('User not found', HttpStatus.NOT_FOUND);
@@ -84,9 +95,13 @@ export class UserController {
   }
 
   @Delete(':id')
-  async delete(@Param('id') id: string): Promise<User> {
+  async delete(
+    @Param('id') id: string,
+    @Query(new ValidationPipe({ transform: true }))
+    queryOptions: MongoQueryOptions,
+  ): Promise<User> {
     try {
-      const user = await this.userService.delete(id);
+      const user = await this.userService.delete(id, queryOptions);
 
       if (!user) {
         throw new HttpException('User not found', HttpStatus.NOT_FOUND);
